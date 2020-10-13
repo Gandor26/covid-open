@@ -1,0 +1,18 @@
+# pycache
+*.pyc
+
+# notebooks
+**/.ipynb_checkpoints/
+
+# Mac tempfile
+.DS_Store
+
+# vscode
+.vscode/
+
+# data files
+*.csv
+*.tar
+*.zip
+*.pkl
+
