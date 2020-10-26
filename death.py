@@ -147,13 +147,11 @@ class DeathModel(GlobalLocalModel):
                 ref_space_feats: Optional[Tensor] = None,
                 test_size: Optional[int] = None,
     ) -> Tuple[Tensor, Tensor, Dict]:
-        death_query = death_data
-        death_ref = death_data
         case_query = case_data
         attn_mask = pt.ones(
-            death_query.size(1)-self.cond_size+1,
-            death_ref.size(1)-self.cond_size-self.pred_size+1,
-            dtype=pt.bool, device=death_query.device,
+            death_data.size(1)-self.cond_size+1,
+            death_data.size(1)-self.cond_size-self.pred_size+1,
+            dtype=pt.bool, device=death_data.device,
         ).triu()
         attn_mask = attn_mask.view(1, *attn_mask.shape, 1)
         death_length = death_data.size(1)
@@ -200,8 +198,10 @@ class DeathModel(GlobalLocalModel):
             self.pred_size, 
             dim=1,
         )[:, -(death_data.size(1)-self.cond_size+1):]
+        death_query = sm
+        death_ref = sm
         if test_size is not None:
-            death_query = death_data[:, -(test_size+self.cond_size):]
+            death_query = death_query[:, -(test_size+self.cond_size):]
             case_query = case_data[:, -(test_size+self.cond_size+self.regression.s_window-1):]
             bed_occupancy = bed_occupancy[:, -(test_size+self.cond_size):]
             attn_mask = attn_mask[:, -(test_size+1):]
@@ -226,7 +226,8 @@ class DeathModel(GlobalLocalModel):
             attn_mask=attn_mask,
         )
         
-        pr = self.tradeoff * pt.clamp_min(global_pr, 0.0) + (1-self.tradeoff) * pt.clamp_min(local_pr, 0.0).unsqueeze(dim=2)
+        # pr = self.tradeoff * pt.clamp_min(global_pr, 0.0) + (1-self.tradeoff) * pt.clamp_min(local_pr, 0.0).unsqueeze(dim=2)
+        pr = pt.clamp_min(global_pr + local_pr.unsqueeze(dim=2), 0.0)
         loss = sum(
             self.quantile_error(p, target, q) 
             for q, p in zip(

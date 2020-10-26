@@ -16,23 +16,22 @@ def load_cdc_truth(
     start_date: str = '2020-01-23',
     end_date: Optional[str] = None,
 ):
-    url = "https://raw.githubusercontent.com/reichlab/covid19-forecast-hub/master/data-truth/" 
-    path = f"{url}/truth-{'Cumulative' if cumulative else 'Incident'}%20{'Deaths' if death else 'Cases'}.csv"
+    url = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series" 
+    path = f"{url}/time_series_covid19_{'deaths' if death else 'confirmed'}_US.csv"
     
-    df = pd.read_csv(
-        path, parse_dates=['date'],
-    )
-    df = df.loc[df['location_name'].isin(state2abbr.keys())]
-    dfs = []
-    for state, data in df.groupby('location_name'):
-        data = data.loc[:, ['date', 'value']].set_index('date')
-        data.columns = [state]
-        dfs.append(data)
-    df = pd.concat(dfs, axis=1)
+    df = pd.read_csv(path)
+    data = {}
+    for state in state2abbr:
+        tmp = df[df['Province_State']==state].loc[:, df.columns[(12 if death else 11):]].sum(axis=0)
+        tmp.index = pd.to_datetime(tmp.index)
+        data[state] = tmp
+    data = pd.DataFrame(data)
+    if not cumulative:
+        data = data.diff(1).iloc[1:]
     if end_date is not None:
         end_date = pd.to_datetime(end_date) - pd.Timedelta(1, unit='d')
-    df = df.loc[start_date:end_date]
-    return df
+    data = data.loc[start_date:end_date]
+    return data
 
     
 def load_case_baselines(

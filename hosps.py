@@ -140,13 +140,11 @@ class HospModel(GlobalLocalModel):
                 ref_space_feats: Optional[Tensor] = None,
                 test_size: Optional[int] = None,
     ) -> Tuple[Tensor, Tensor, Dict]:
-        hosp_query = hosp_data
-        hosp_ref = hosp_data
         case_query = case_data
         attn_mask = pt.ones(
-            hosp_query.size(1)-self.cond_size+1,
-            hosp_ref.size(1)-self.cond_size-self.pred_size+1,
-            dtype=pt.bool, device=hosp_query.device,
+            hosp_data.size(1)-self.cond_size+1,
+            hosp_data.size(1)-self.cond_size-self.pred_size+1,
+            dtype=pt.bool, device=hosp_data.device,
         ).triu()
         attn_mask = attn_mask.view(1, *attn_mask.shape, 1)
         hosp_length = hosp_data.size(1)
@@ -160,6 +158,8 @@ class HospModel(GlobalLocalModel):
         target = hosp_data[:, target_index]
         
         sm, local_pr, level_diffs = self.smoother(hosp_data)
+        hosp_query = hosp_data
+        hosp_ref = hosp_data
         if test_size is not None:
             hosp_query = hosp_data[:, -(test_size+self.cond_size):]
             case_query = case_data[:, -(test_size+self.cond_size+self.regression.s_window-1):]
@@ -186,6 +186,7 @@ class HospModel(GlobalLocalModel):
         )
 
         pr = self.tradeoff * pt.clamp_min(global_pr, 0.0) + (1 - self.tradeoff) * pt.clamp_min(local_pr, 0.0).unsqueeze(dim=2)
+        # pr = pt.clamp_min(global_pr + local_pr.unsqueeze(dim=2), 0.0)
         loss = sum(
             self.quantile_error(p, target, q) 
             for q, p in zip(

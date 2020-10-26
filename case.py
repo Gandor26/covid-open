@@ -69,12 +69,10 @@ class CaseModel(GlobalLocalModel):
                 ref_space_feats: Optional[Tensor] = None,
                 test_size: Optional[int] = None,
     ) -> Tuple[Tensor, Tensor, Dict]:
-        case_query = case_data
-        case_ref = case_data
         attn_mask = pt.ones(
-            case_query.size(1)-self.cond_size+1,
-            case_ref.size(1)-self.cond_size-self.pred_size+1,
-            dtype=pt.bool, device=case_query.device,
+            case_data.size(1)-self.cond_size+1,
+            case_data.size(1)-self.cond_size-self.pred_size+1,
+            dtype=pt.bool, device=case_data.device,
         ).triu()
         attn_mask = attn_mask.view(1, *attn_mask.shape, 1)
         case_length = case_data.size(1)
@@ -121,6 +119,8 @@ class CaseModel(GlobalLocalModel):
             self.pred_size, 
             dim=1,
         )[:, -(case_data.size(1)-self.cond_size+1):]
+        case_query = sm
+        case_ref = sm
         if test_size is not None:
             case_query = case_data[:, -(test_size+self.cond_size):]
             attn_mask = attn_mask[:, -(test_size+1):]
@@ -139,7 +139,7 @@ class CaseModel(GlobalLocalModel):
             attn_mask=attn_mask,
         )
 
-        pr = self.tradeoff * pt.clamp_min(global_pr, 0.0) + (1-self.tradeoff) * pt.clamp_min(local_pr, 0.0).unsqueeze(dim=2)
+        pr = pt.clamp_min(global_pr + local_pr.unsqueeze(dim=2), 0.0)
         loss = sum(
             self.quantile_error(p, target, q) 
             for q, p in zip(
@@ -202,8 +202,8 @@ def load_data(
     device = pt.device('cpu') if device < 0 else pt.device(f'cuda:{device}')
     data = {
         'case_data': pt.tensor(cases.values.T, dtype=pt.float, device=device),
-        'query_space_feats': pt.tensor(query_space_feats, dtype=pt.float, device=device),
-        'ref_space_feats': pt.tensor(ref_space_feats, dtype=pt.float, device=device),
+        #'query_space_feats': pt.tensor(query_space_feats, dtype=pt.float, device=device),
+        #'ref_space_feats': pt.tensor(ref_space_feats, dtype=pt.float, device=device),
     }
     if test_size is not None:
         train_data = deepcopy(data)

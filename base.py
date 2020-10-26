@@ -22,10 +22,10 @@ class GlobalLocalModel(nn.Module):
         self.n_rolls = n_rolls
         self.d_hidden = d_hidden
         self.var_penalty = var_penalty
-        self.quantiles = list(set(sum(
+        self.quantiles = sorted(list(set(sum(
             [[q, 1-q] for q in (quantiles or []) if q != 0.5],
             [0.5],
-        )))
+        ))))
         
         self._tradeoff = nn.Parameter(Tensor(1 if share_params else n_location, 1, 1, 1))
         init.constant_(self._tradeoff, 0.0)
