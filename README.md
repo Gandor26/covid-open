@@ -8,12 +8,15 @@ We employ a purely data-driven model named ACTS to forecast COVID-19 related dat
 ## Architecture
 ![arch](figs/architecture.png)
 
-## Sample forecasts
+## Evaluation and Sample forecasts
 
-Death forecast as of Oct 05
+### Past forecasting accuracy as of Aug 31
 ![sample](figs/sample.png)
 
 For more details about our methodology, previous forecasts and comparison with other models, please refer to our [manuscript](https://arxiv.org/abs/2010.13006) on Arxiv.
+
+### Recent forecasts on Nov 1
+![sample](figs/newest.png)
 
 ## Project Homepage
 https://sites.cs.ucsb.edu/~xyan/covid19_ts.html
